@@ -1,4 +1,4 @@
-// 4x32 RAM using register banks
+// 4x32 RAM 
 
 // module description
 // 4x32 RAM without clk
