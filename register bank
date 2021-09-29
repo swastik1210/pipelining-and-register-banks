@@ -1,0 +1,68 @@
+module regbank(rddata1,rddata2,wrdata,sr1,sr2,dr,write,reset,clock);
+  input clock,write,reset;
+  input [4:0]sr1,sr2,dr;
+  input [31:0]wrdata;
+  output [31:0]rddata1,rddata2;
+  integer k;
+  reg [31:0]regfile[31:0];
+  assign rddata1=regfile[sr1];
+  assign rddata2=regfile[sr2];
+  always @(posedge clock)
+    begin
+      if(reset)
+        begin
+          for(k=0;k<32;k=k+1)
+            begin
+              regfile[k]<=0;
+            end
+        end
+      else 
+        begin
+          if(write)
+            regfile[dr]<=wrdata;
+        end
+    end
+endmodule
+
+// testbench
+
+module testregbank;
+  reg clk,wr,rst;
+  reg [4:0]sr1,sr2,dr;
+  reg [31:0]wrdata;
+  wire [31:0]rddata1,rddata2;
+  integer k,m;
+  
+  regbank RB(rddata1,rddata2,wrdata,sr1,sr2,dr,wr,rst,clk);
+  
+  initial clk=0;
+   
+  always #5 clk=~clk;
+  
+  initial
+    begin
+      $dumpfile("design.vcd");
+      $dumpvars(0,testregbank);
+      #1 rst=1;wr=0;
+      #5 rst=0;
+    end
+  initial
+    begin
+      #7
+      for(k=0;k<32;k=k+1)
+        begin
+          dr=k;
+          wrdata=k*($random(m));
+          wr=1;
+          #10 wr=0;
+        end
+      for(k=0;k<32;k=k+1)
+        begin
+          sr1=k;
+          sr2=k+2;
+          #5;
+          $display("reg[%2d]=>%d, reg[%2d]=>%d",sr1,rddata1,sr2,rddata2);
+        end
+      #2500 $finish;
+    end
+endmodule
