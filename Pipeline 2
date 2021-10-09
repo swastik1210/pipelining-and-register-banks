@@ -1,0 +1,150 @@
+// Three register addresesses rs1,rs2,rd, an ALU function (func) and a memory address (add).
+// STAGE 1
+// Read 2 16 bit numbers from the registers specified by rs1 and rs2 and store them in a &b.
+// STAGE 2
+// Perform ALU operation on a & b specified by 'func' and store it in z
+// STAGE 3
+// Write the value of z in the register specified by 'rd'
+// STAGE 4
+// Also write the value of z in the memory location 'addr'.
+// There is a regbank og 16 16-bit registers.
+// memory is of size 16x256 bit.
+
+// ************************** MODULE **********************
+
+module pipeex2(zout,rs1,rs2,rd,addr,func,clk1,clk2);
+  input clk1,clk2;
+  input [3:0]func,rs1,rs2,rd;
+  input [7:0]addr;
+  output [15:0]zout;
+
+// -------------Clocking issue in verilog --------------------------------
+// MAY CAUSE RACE AROUND CONDITION
+// Posiible solution
+// 1. Mastter Slvae Flip Flops
+// 2. Use non-overlapping two-phase clocks for the consequtive pipeline stages 
+// (here  we are using non-overlapping clocks)  
+  
+  reg [3:0]l12_rd,l12_func,l23_rd;
+  reg [15:0]l12_a,l12_b,l23_z,l34_z;
+  reg [7:0]l12_addr,l23_addr,l34_addr;
+  reg [15:0]regbank[15:0];
+  reg [15:0]mem[0:255];
+  
+  assign zout =l34_z;
+
+// stage `1  
+  always @(posedge clk1)
+    begin
+      l12_a <= #2 regbank[rs1];
+      l12_b <= #2 regbank[rs2];
+      l12_rd <= #2 rd;
+      l12_func <= #2 func;
+      l12_addr <= #2 addr;
+    end
+
+// stage 2
+  always @(negedge clk2)
+    begin
+      case(func)
+        0: l23_z <= #2 l12_a + l12_b;
+        1: l23_z <= #2 l12_a - l12_b;
+        2: l23_z <= #2 l12_a * l12_b;
+        3: l23_z <= #2 l12_a;
+        4: l23_z <= #2 l12_b;
+        5: l23_z <= #2 l12_a & l12_b;
+        6: l23_z <= #2 l12_a | l12_b;
+        7: l23_z <= #2 l12_a ^ l12_b;
+        8: l23_z <= #2 ~l12_a;
+        9: l23_z <= #2 ~l12_b;
+        10:l23_z <= #2 l12_a >> 1;
+        11:l23_z <= #2 l12_a << 1;
+        12:l23_z <= #2 l12_b >> 1;
+        13:l23_z <= #2 l12_b << 1;
+        default:l23_z <= #2 16'hxxxx;
+      endcase
+      l23_rd <= #2 l12_rd;
+      l23_addr <= #2 l12_addr;
+    end
+  
+ // stage 3
+  always @(posedge clk1)
+    begin
+      regbank[l23_rd] <= #2 l23_z;
+      l34_z <= #2 l23_z;
+      l34_addr <= #2 l23_addr;
+    end
+  
+ // stage 4
+  always @(negedge clk2)
+    begin
+      mem[l34_addr] <= #2 l34_z;
+    end
+  endmodule
+
+// testbench
+
+module test_pipe;
+  wire [15:0]z;
+  reg clk1,clk2;
+  reg [3:0]func,rs1,rs2,rd;
+  reg [7:0]addr;
+  integer k;
+  
+  pipeex2 MP(z,rs1,rs2,rd,addr,func,clk1,clk2);
+  initial
+    begin
+      clk1=0;
+      clk2=0;
+      repeat(20)
+        begin
+          #5 clk1=1; #5 clk1=0;
+          #5 clk2=1; #5 clk2=0;
+        end
+    end
+  initial
+    for(k=0;k<16;k=k+1)
+      MP.regbank[k]=k;
+  initial
+    begin
+      #5 rs1=3; rs2=5; rd=10; func=0; addr=125;
+      //add
+      #20 rs1=3; rs2=8; rd=12; func=2; addr=126;
+      //multiply
+      #20 rs1=10; rs2=5; rd=14; func=1; addr=127;
+      //subtract
+      #20 rs1=7; rs2=3; rd=15; func=11; addr=128;
+      //left shift a
+      #20 rs1=3; rs2=8; rd=13; func=3; addr=129;
+      //read a
+      #20 rs1=3; rs2=8; rd=11; func=4; addr=120;
+      //read b
+      #20 rs1=3; rs2=5; rd=16; func=5; addr=121;
+      //AND
+      #20 rs1=3; rs2=2; rd=17; func=6; addr=122;
+      //OR
+      #20 rs1=5; rs2=4; rd=18; func=7; addr=123;
+      //Ex-OR
+      #20 rs1=3; rs2=8; rd=19; func=8; addr=124;
+      //compliment a
+      #20 rs1=3; rs2=8; rd=22; func=9; addr=119;
+      //complement b
+      #20 rs1=4; rs2=0; rd=32; func=10; addr=118;
+      //right shift a
+      #20 rs1=12; rs2=7; rd=42; func=12; addr=117;
+      //right shift b
+      #20 rs1=13; rs2=9; rd=52; func=13; addr=116;
+      //left shift b
+      
+      #60 for(k=116;k<130;k=k+1)
+        $display(" Memory[%3d]= %3d ",k,MP.mem[k]);
+    end
+  
+  initial
+    begin
+      $dumpfile("design.vcd");
+      $dumpvars(0,test_pipe);
+      $monitor($time, " F=%3d ",z);
+      #2000 $finish;
+    end
+  endmodule
