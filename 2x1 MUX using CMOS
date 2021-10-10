@@ -1,0 +1,30 @@
+//module
+
+module mux2x1(z,s0,s1,x);
+  input s0,s1,x;
+  output z;
+  wire xbar;
+  not (xbar,x);
+  
+  cmos cmos_a(z,s0,xbar,x);
+  cmos cmos_b(z,s1,x,xbar);
+endmodule
+
+//testbench
+
+module test_mux;
+   reg s0,s1,x;
+   wire z;
+   integer k;
+   
+   mux2x1 MUX(z,s0,s1,x);
+   
+   initial
+     begin
+       for(k=0;k<8;k=k+1)
+         begin
+           #5 {x,s0,s1}=k;
+           $display("X=%b S0=%b S1=%b => Z=%b",x,s0,s1,z);
+         end
+     end
+ endmodule
