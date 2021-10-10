@@ -1,0 +1,29 @@
+//module
+
+module pseudo_cmos_nor(x,y,f);
+  input x,y;
+  output f;
+  supply0 gnd;
+  nmos n1(f,gnd,x);
+  nmos n2(f,gnd,y);
+  pullup(f);
+endmodule
+
+//testbench
+
+module test_nor;
+   reg s,t;
+   wire z;
+   integer k;
+   
+   pseudo_cmos_nor NOR(s,t,z);
+   
+   initial
+     begin
+       for(k=0;k<4;k=k+1)
+         begin
+           #5 {s,t}=k;
+           $display(" X=%b Y=%b => Z=%b",s,t,z);
+         end
+     end
+ endmodule
