@@ -1,0 +1,78 @@
+// Write a Verilog module to implement a 2-bit adder using a ROM that stores the sum (sum) and carry (cout) as a + b + c of two 2-bit numbers a, b and a 1-bit carry c. 
+// The module will take as inputs these two 2-bit numbers a, b and 1-bit carry c through input ports A, B and C respectively, 
+// and use the bits in A, B and C in order to form the address of the ROM to provide the sum and carry through output port Sum and Cout. 
+
+//module
+
+module adder_rom_2bit(Cout, Sum, A, B, C);
+  input [1:0]A,B;
+  input C;
+  output [1:0]Sum;
+  output Cout;
+  
+  reg[2:0]rom[31:0];
+  reg [5:0]i;
+  
+  assign {Cout,Sum}=rom[{A,B,C}];
+  
+  
+	initial 
+      begin
+		for ( i = 0; i <= 31; i = i+ 1 ) begin
+			rom[i[4:0]] = i[4:3] + i[2:1] + i[0]; 
+		end
+	end
+endmodule
+
+//test bench
+
+module romtb;
+  reg [1:0]a,b;
+  reg c;
+  wire [1:0]sum;
+  wire cout;
+  
+  adder_rom_2bit ADD(cout, sum, a, b, c);
+ 
+  initial
+   begin
+    $dumpfile("design.vcd");
+    $dumpvars(0,romtb);
+    $monitor(" (a:%2b, b:%2b, c:%b) => cout:%b,sum:%2b",a,b,c, cout,sum);
+ 
+  #2 a=0; b=0; c=0;
+  #2 a=0; b=0; c=1;
+  #2 a=0; b=1; c=0;
+  #2 a=0; b=2; c=0;
+  #2 a=0; b=3; c=0;
+  #2 a=1; b=1; c=1;
+  #2 a=2; b=2; c=1;
+  #2 a=0; b=3; c=1;
+  #2 a=1; b=0; c=0;
+  #2 a=2; b=0; c=0;
+  #2 a=3; b=0; c=0;
+  #2 a=1; b=0; c=1;
+  #2 a=2; b=0; c=1;
+  #2 a=3; b=1; c=1;
+  #2 a=1; b=1; c=0;
+  #2 a=1; b=2; c=0;
+  #2 a=1; b=3; c=0;
+  #2 a=1; b=1; c=1;
+  #2 a=1; b=2; c=1;
+  #2 a=1; b=3; c=1;
+  #2 a=2; b=1; c=0;
+  #2 a=2; b=2; c=0;
+  #2 a=2; b=3; c=0;
+  #2 a=2; b=1; c=1;
+  #2 a=2; b=2; c=1;
+  #2 a=2; b=3; c=1;
+  #2 a=3; b=1; c=0;
+  #2 a=3; b=2; c=0;
+  #2 a=3; b=3; c=0;
+  #2 a=3; b=1; c=1;
+  #2 a=3; b=2; c=1;
+  #2 a=3; b=3; c=1;
+     
+  #200 $finish;
+   end
+endmodule
